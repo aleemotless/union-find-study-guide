@@ -1,0 +1,774 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Union-Find Study Guide</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (~760px). A parent[] array is the page's signature motif; every tree diagram uses the same node language (root = amber, path = blue). */
+:root{
+  --paper:#f4f6fa; --surface:#ffffff; --ink:#192033; --muted:#596379; --line:#d5dbe7;
+  --accent:#2e54c6; --accent-soft:#e5ebfb; --root:#b96d0c; --root-soft:#fbecd5;
+  --code-bg:#edf0f6; --add:#dfe7fb;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#10141c; --surface:#171c27; --ink:#e3e7ef; --muted:#9aa4b8; --line:#2b3344;
+  --accent:#8ea8ff; --accent-soft:#1e2846; --root:#f0b04c; --root-soft:#3a2b13;
+  --code-bg:#141923; --add:#1f2a47; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --paper:#10141c; --surface:#171c27; --ink:#e3e7ef; --muted:#9aa4b8; --line:#2b3344;
+  --accent:#8ea8ff; --accent-soft:#1e2846; --root:#f0b04c; --root-soft:#3a2b13;
+  --code-bg:#141923; --add:#1f2a47; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--paper); color:var(--ink); font-family:var(--f-body); font-size:17px; line-height:1.6;
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); padding-block:0 64px}
+.wrap{max-width:780px; margin:0 auto}
+h1,h2,h3{font-family:var(--f-display); line-height:1.15; text-wrap:balance; margin:0}
+h1{font-size:clamp(2.4rem, 7vw, 3.6rem); font-weight:700; letter-spacing:-.02em}
+h2{font-size:1.75rem; font-weight:700; letter-spacing:-.01em}
+h3{font-size:1.2rem; font-weight:500}
+p{margin:0; max-width:66ch}
+a{color:var(--accent)}
+code, .mono{font-family:var(--f-mono); font-size:.88em}
+:not(pre) > code{background:var(--code-bg); padding:.08em .35em; border-radius:4px}
+.eyebrow{font-family:var(--f-mono); font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+/* hero */
+header.hero{padding-block:56px 36px; display:grid; gap:18px; border-bottom:1px solid var(--line)}
+.hero .lede{font-size:1.15rem; color:var(--muted)}
+.arr{display:flex; gap:0; flex-wrap:wrap; margin-top:6px}
+.arr .cell{display:grid; text-align:center; min-width:44px; border:1px solid var(--line); margin-left:-1px; background:var(--surface)}
+.arr .cell span{font-family:var(--f-mono); padding:4px 8px}
+.arr .cell .i{font-size:.72rem; color:var(--muted); border-bottom:1px solid var(--line)}
+.arr .cell .v{font-size:1.05rem; font-weight:600}
+.arr .cell.is-root .v{color:var(--root)}
+.arr .cell.changed{background:var(--accent-soft)}
+.arr-label{font-family:var(--f-mono); font-size:.8rem; color:var(--muted)}
+
+/* sections */
+section{padding-block:44px 8px; display:grid; gap:18px}
+section > header{display:grid; gap:6px}
+.lead{font-size:1.06rem}
+.callout{border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:14px 18px; display:grid; gap:6px}
+.callout.beyond{border-style:dashed; background:transparent}
+.callout .tag{font-family:var(--f-mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.callout.warn .tag{color:var(--root)}
+.takeaways{margin:0; padding-left:1.2em; display:grid; gap:6px}
+.takeaways li::marker{color:var(--accent)}
+
+/* toc */
+.toc{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin:0; padding:0; list-style:none}
+.toc a{display:grid; gap:2px; text-decoration:none; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; height:100%}
+.toc a:hover{border-color:var(--accent)}
+.toc .n{font-family:var(--f-mono); font-size:.75rem; color:var(--accent)}
+.toc .t{font-weight:700}
+.toc .d{font-size:.88rem; color:var(--muted)}
+.phase{font-family:var(--f-mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:6px}
+
+/* tables */
+.tbl{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:.95rem; min-width:520px}
+th,td{text-align:left; padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{font-family:var(--f-mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600}
+td.num{font-variant-numeric:tabular-nums; font-family:var(--f-mono); white-space:nowrap}
+
+/* svg figures */
+figure{margin:0; display:grid; gap:8px}
+.fig{overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px}
+.fig svg{display:block; width:100%; height:auto; min-width:480px}
+figcaption{font-size:.9rem; color:var(--muted)}
+svg text{font-family:var(--f-mono); fill:var(--ink)}
+svg .node{fill:var(--surface); stroke:var(--muted); stroke-width:1.6}
+svg .node.root{fill:var(--root-soft); stroke:var(--root); stroke-width:2.2}
+svg .node.onpath{fill:var(--accent-soft); stroke:var(--accent); stroke-width:2.4}
+svg .edge{stroke:var(--muted); stroke-width:1.6; fill:none}
+svg .edge.hot{stroke:var(--accent); stroke-width:2.6}
+svg .edge.new{stroke:var(--root); stroke-dasharray:5 4; stroke-width:2}
+svg .ah{fill:var(--muted)} svg .ah-hot{fill:var(--accent)} svg .ah-new{fill:var(--root)}
+svg .lbl{font-size:12px; fill:var(--muted)}
+svg .lbl-strong{font-size:13px; fill:var(--ink); font-weight:600}
+svg .lbl-root{font-size:11px; fill:var(--root)}
+svg .lbl-accent{font-size:12px; fill:var(--accent); font-weight:600}
+svg .nlabel{font-size:15px; font-weight:600; text-anchor:middle; dominant-baseline:central}
+
+/* stepper */
+.stepper{display:grid; gap:14px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px}
+.stepper .top{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; justify-content:space-between}
+.stepper .op{font-family:var(--f-mono); font-size:1.2rem; font-weight:600}
+.stepper .count{font-family:var(--f-mono); font-size:.8rem; color:var(--muted)}
+.stepper .note{min-height:3.2em}
+.stepper .tree{overflow-x:auto}
+.stepper .tree svg{display:block; width:100%; height:auto; min-width:420px}
+.controls{display:flex; gap:8px; flex-wrap:wrap}
+button{font:inherit; font-size:.92rem; border:1px solid var(--line); background:var(--paper); color:var(--ink); border-radius:8px; padding:7px 14px; cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent); color:var(--surface); border-color:var(--accent)}
+button:disabled{opacity:.45; cursor:default}
+.log{display:flex; flex-wrap:wrap; gap:6px}
+.log button{font-family:var(--f-mono); font-size:.78rem; padding:4px 9px}
+.log button[aria-current="step"]{background:var(--accent-soft); border-color:var(--accent); color:var(--ink)}
+
+/* code */
+.tabs{display:flex; flex-wrap:wrap; gap:6px}
+.tabs button[aria-selected="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+pre{margin:0; background:var(--code-bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; font-family:var(--f-mono); font-size:.84rem; line-height:1.6; tab-size:4}
+pre .c{color:var(--muted); font-style:italic}
+pre .add{display:inline-block; width:100%; background:var(--add); box-shadow:-16px 0 0 var(--add), 16px 0 0 var(--add)}
+.panel{display:grid; gap:10px}
+.panel .meta{font-size:.92rem; color:var(--muted)}
+
+/* concept flow */
+.flow{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:28px 14px; position:relative}
+.flow .box{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:grid; gap:4px; position:relative}
+.flow .box b{font-family:var(--f-display); font-weight:700; font-size:1.02rem}
+.flow .box span{font-size:.88rem; color:var(--muted)}
+.flow .box.key{border-color:var(--root); background:var(--root-soft)}
+.flow .box:not(:last-child)::after{content:"→"; position:absolute; right:-13px; top:50%; transform:translateY(-50%); color:var(--accent); font-weight:700}
+.flow .box:nth-child(3n)::after{content:"↓"; right:50%; top:auto; bottom:-24px; transform:translateX(50%)}
+@media (max-width:640px){
+  .flow{grid-template-columns:1fr; gap:24px}
+  .flow .box:not(:last-child)::after{content:"↓"; right:50%; top:auto; bottom:-22px; transform:translateX(50%)}
+}
+
+/* revision */
+.sheet{display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:12px}
+.sheet .card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; display:grid; gap:6px; align-content:start}
+.sheet .card b{font-family:var(--f-display)}
+dl.terms{display:grid; grid-template-columns:minmax(140px, 200px) minmax(0,1fr); gap:0; margin:0; border:1px solid var(--line); border-radius:10px; background:var(--surface); overflow:hidden}
+dl.terms dt, dl.terms dd{margin:0; padding:10px 14px; border-bottom:1px solid var(--line)}
+dl.terms dt{font-weight:700}
+dl.terms dt:last-of-type, dl.terms dd:last-of-type{border-bottom:0}
+@media (max-width:520px){ dl.terms{grid-template-columns:1fr} dl.terms dt{border-bottom:0; padding-bottom:0} dl.terms dt:last-of-type{border-bottom:0} }
+
+ol.quiz{margin:0; padding-left:1.4em; display:grid; gap:14px}
+ol.quiz li::marker{font-family:var(--f-mono); color:var(--accent); font-weight:600}
+details{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px 16px}
+details summary{cursor:pointer; font-weight:700}
+details[open] summary{margin-bottom:8px}
+details + details{margin-top:8px}
+footer{margin-top:48px; padding-top:18px; border-top:1px solid var(--line); font-size:.88rem; color:var(--muted)}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">Algorithms · Detailed study guide · Intermediate</div>
+  <h1>Union-Find</h1>
+  <p class="lede">Also called Disjoint Set Union (DSU). One small array that answers "are these two things in the same group?" and merges groups, both in nearly constant time.</p>
+  <div>
+    <div class="arr" aria-label="Final parent array from the walkthrough">
+      <div class="cell is-root"><span class="i">0</span><span class="v">0</span></div>
+      <div class="cell"><span class="i">1</span><span class="v">0</span></div>
+      <div class="cell"><span class="i">2</span><span class="v">0</span></div>
+      <div class="cell"><span class="i">3</span><span class="v">2</span></div>
+      <div class="cell"><span class="i">4</span><span class="v">0</span></div>
+      <div class="cell"><span class="i">5</span><span class="v">4</span></div>
+      <div class="cell"><span class="i">6</span><span class="v">4</span></div>
+      <div class="cell"><span class="i">7</span><span class="v">6</span></div>
+    </div>
+    <div class="arr-label">parent[] after the video's walkthrough: eight elements, one group, root 0</div>
+  </div>
+</header>
+
+<section id="overview">
+  <header><div class="eyebrow">Topic overview</div><h2>What this video teaches</h2></header>
+  <p class="lead">Union-Find manages a collection of <b>disjoint sets</b>: groups that never share an element. It supports two questions fast: which group does an element belong to, and can we merge two groups into one. The video builds the structure in four versions, each fixing a weakness of the previous one.</p>
+  <p>It matters because many graph algorithms reduce to these two questions. The video names three uses: detecting whether a graph has a cycle, finding which nodes in a network are connected, and building a minimum spanning tree with Kruskal's algorithm (the subject of the next video).</p>
+</section>
+
+<section id="toc">
+  <header><div class="eyebrow">Visual table of contents</div><h2>The path through the material</h2></header>
+  <p>The sections follow the video's own progression: learn the model, build the naive version, find its flaw, then apply two fixes.</p>
+  <div class="phase">Foundations</div>
+  <ul class="toc">
+    <li><a href="#ops"><span class="n">1</span><span class="t">Three operations</span><span class="d">make_set, find, union, and the company-boss analogy</span></a></li>
+    <li><a href="#array"><span class="n">2</span><span class="t">Trees stored in an array</span><span class="d">parent[i], roots, forests, non-integer keys</span></a></li>
+    <li><a href="#walk"><span class="n">3</span><span class="t">Step-by-step walkthrough</span><span class="d">Eight elements merged into one tree</span></a></li>
+  </ul>
+  <div class="phase">Build it, break it, fix it</div>
+  <ul class="toc">
+    <li><a href="#v1"><span class="n">4</span><span class="t">Version 1.0 and its flaw</span><span class="d">Simple code; tall trees make find O(n)</span></a></li>
+    <li><a href="#balance"><span class="n">5</span><span class="t">Union by rank / size</span><span class="d">Versions 2.0 and 2.1 keep trees short</span></a></li>
+    <li><a href="#compress"><span class="n">6</span><span class="t">Path compression</span><span class="d">Version 3.0 flattens paths during find</span></a></li>
+    <li><a href="#complexity"><span class="n">7</span><span class="t">Performance: α(n)</span><span class="d">Why the final version is "nearly constant"</span></a></li>
+  </ul>
+  <div class="phase">Review</div>
+  <ul class="toc">
+    <li><a href="#connections"><span class="n">8</span><span class="t">Concept connections</span><span class="d">How the ideas feed each other</span></a></li>
+    <li><a href="#revision"><span class="n">9</span><span class="t">Quick revision sheet</span><span class="d">Takeaways and key terms</span></a></li>
+    <li><a href="#check"><span class="n">10</span><span class="t">Knowledge check</span><span class="d">Five questions, answers below them</span></a></li>
+  </ul>
+</section>
+
+<section id="ops">
+  <header><div class="eyebrow">Part 1 · Foundations</div><h2>The three operations</h2></header>
+  <p class="lead">Every Union-Find exposes three operations. The video explains them through a company where every employee reports to a direct manager.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Operation</th><th>What it does</th><th>Company analogy</th></tr></thead>
+    <tbody>
+      <tr><td><code>make_set(x)</code></td><td>Puts each element in its own group; the element is its own parent.</td><td>A new employee joins and, at first, reports only to themselves.</td></tr>
+      <tr><td><code>find(x)</code></td><td>Returns the <b>root</b> (representative) of x's group. The root is the group's identity.</td><td>Follow your manager, then theirs, until you reach someone who reports to no one else: the top boss.</td></tr>
+      <tr><td><code>union(x, y)</code></td><td>Merges the groups of x and y, if they are not already the same group.</td><td>A reorganization: two departments merge, and one of the two top bosses becomes boss of everyone.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">
+    <div class="tag">The key test</div>
+    <p>Two elements are in the same group <b>exactly when</b> <code>find(a) == find(b)</code>. Two employees who reach the same top boss work in the same department.</p>
+  </div>
+</section>
+
+<section id="array">
+  <header><div class="eyebrow">Part 2 · Foundations</div><h2>Trees stored in a single array</h2></header>
+  <p class="lead">We draw Union-Find as trees, but code stores it as one array called <code>parent</code>. The index is the element; the value is that element's parent.</p>
+  <figure>
+    <div class="fig">
+      <svg viewBox="0 0 620 210" role="img" aria-label="An array where parent[4]=3 drawn as node 4 pointing to node 3">
+        <defs>
+          <marker id="m1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="m1h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah-hot" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+        <text x="20" y="28" class="lbl-strong">parent[] in memory</text>
+        <g transform="translate(20,44)">
+          <rect x="0" y="0" width="52" height="24" class="node"/><rect x="52" y="0" width="52" height="24" class="node"/><rect x="104" y="0" width="52" height="24" class="node"/><rect x="156" y="0" width="52" height="24" class="node"/><rect x="208" y="0" width="52" height="24" class="node onpath"/>
+          <rect x="0" y="24" width="52" height="30" class="node"/><rect x="52" y="24" width="52" height="30" class="node"/><rect x="104" y="24" width="52" height="30" class="node"/><rect x="156" y="24" width="52" height="30" class="node"/><rect x="208" y="24" width="52" height="30" class="node onpath"/>
+          <text x="26" y="16" class="lbl" text-anchor="middle">0</text><text x="78" y="16" class="lbl" text-anchor="middle">1</text><text x="130" y="16" class="lbl" text-anchor="middle">2</text><text x="182" y="16" class="lbl" text-anchor="middle">3</text><text x="234" y="16" class="lbl" text-anchor="middle">4</text>
+          <text x="26" y="44" class="nlabel">0</text><text x="78" y="44" class="nlabel">0</text><text x="130" y="44" class="nlabel">1</text><text x="182" y="44" class="nlabel">3</text><text x="234" y="44" class="nlabel">3</text>
+          <text x="-6" y="16" class="lbl" text-anchor="end"></text>
+        </g>
+        <text x="20" y="128" class="lbl">index = element</text>
+        <text x="20" y="146" class="lbl">value = its parent</text>
+        <text x="20" y="176" class="lbl-accent">parent[4] = 3 → "4's parent is 3"</text>
+        <!-- tree view -->
+        <text x="380" y="28" class="lbl-strong">the same data as a forest</text>
+        <line x1="380" y1="108" x2="380" y2="66" class="edge" marker-end="url(#m1)"/>
+        <line x1="380" y1="170" x2="380" y2="128" class="edge" marker-end="url(#m1)"/>
+        <circle cx="380" cy="48" r="18" class="node root"/><text x="380" y="48" class="nlabel">0</text>
+        <circle cx="380" cy="118" r="18" class="node"/><text x="380" y="110" class="nlabel" dy="8">1</text>
+        <circle cx="380" cy="182" r="18" class="node"/><text x="380" y="182" class="nlabel">2</text>
+        <text x="404" y="44" class="lbl-root">root (parent[0]=0)</text>
+        <line x1="540" y1="108" x2="540" y2="66" class="edge hot" marker-end="url(#m1h)"/>
+        <circle cx="540" cy="48" r="18" class="node root"/><text x="540" y="48" class="nlabel">3</text>
+        <circle cx="540" cy="126" r="18" class="node onpath"/><text x="540" y="126" class="nlabel">4</text>
+        <text x="564" y="44" class="lbl-root">root</text>
+      </svg>
+    </div>
+    <figcaption>Arrows point from child to parent. A root is the one element whose parent is itself. Each tree is one group, so the whole structure is a <b>forest</b> of rooted trees.</figcaption>
+  </figure>
+  <ul class="takeaways">
+    <li>Following parent links upward always ends at the root, the unique representative of the group.</li>
+    <li>The array form is simple, fast, and memory-efficient: one integer per element.</li>
+    <li><b>Elements that are not integers</b> (for example strings) are no problem: use a hash map to assign each one a unique index, then run Union-Find on the indices.</li>
+  </ul>
+</section>
+
+<section id="walk">
+  <header><div class="eyebrow">Part 3 · Foundations</div><h2>Walkthrough: eight elements, one tree</h2></header>
+  <p class="lead">This replays the video's example exactly. Step through it and watch the tree and the <code>parent</code> array change together. In each union the video chooses the first argument's root as the new root.</p>
+  <div class="stepper" id="stepper">
+    <div class="top"><span class="op" id="st-op">make_set × 8</span><span class="count" id="st-count">Step 1 of 10</span></div>
+    <p class="note" id="st-note"></p>
+    <div class="tree" id="st-tree" aria-live="polite"></div>
+    <div>
+      <div class="arr" id="st-arr"></div>
+      <div class="arr-label">parent[] · amber value = root · tinted cell = changed in this step</div>
+    </div>
+    <div class="controls">
+      <button type="button" id="st-prev">← Previous</button>
+      <button type="button" id="st-next" class="primary">Next step →</button>
+      <button type="button" id="st-reset">Reset</button>
+    </div>
+    <div class="log" id="st-log" aria-label="Jump to a step"></div>
+  </div>
+  <ul class="takeaways">
+    <li>Each <b>union</b> creates one manager-employee link: one root gets a parent.</li>
+    <li>Each <b>find</b> climbs those links to the top boss. <code>find(3)</code> takes 2 hops; <code>find(7)</code> takes 3.</li>
+    <li>Union only changes a <b>root's</b> parent. Non-root nodes like 3 keep their parent; they join the bigger group indirectly.</li>
+  </ul>
+</section>
+
+<section id="v1">
+  <header><div class="eyebrow">Part 4 · Build it</div><h2>Version 1.0, and why it slows down</h2></header>
+  <p class="lead">The basic implementation maps directly onto the three operations. Its weakness: nothing controls how tall the trees grow.</p>
+  <pre><code><span class="c"># Union-Find v1.0 (from the video)</span>
+class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))      <span class="c"># make_set: parent[i] = i</span>
+
+    def find(self, x):
+        while self.parent[x] != x:        <span class="c"># climb until a node is its own parent</span>
+            x = self.parent[x]
+        return x                          <span class="c"># that node is the root</span>
+
+    def union(self, x, y):
+        root_x = self.find(x)
+        root_y = self.find(y)
+        if root_x != root_y:              <span class="c"># already in the same set? do nothing</span>
+            self.parent[root_y] = root_x  <span class="c"># root_y now points to root_x</span></code></pre>
+
+  <h3>The worst case: a chain</h3>
+  <p>If unions keep hanging trees in the wrong place, the forest stretches into one long chain. Then <code>find(7)</code> must walk every link: 7 → 6 → 5 → … → 0.</p>
+  <figure>
+    <div class="fig">
+      <svg viewBox="0 0 640 120" role="img" aria-label="A chain of eight nodes from 7 down to root 0">
+        <defs><marker id="m2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-hot" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <g>
+          <line x1="94" y1="50" x2="58" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <line x1="170" y1="50" x2="134" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <line x1="246" y1="50" x2="210" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <line x1="322" y1="50" x2="286" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <line x1="398" y1="50" x2="362" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <line x1="474" y1="50" x2="438" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <line x1="550" y1="50" x2="514" y2="50" class="edge hot" marker-end="url(#m2)"/>
+          <circle cx="40" cy="50" r="18" class="node root"/><text x="40" y="50" class="nlabel">0</text>
+          <circle cx="116" cy="50" r="18" class="node onpath"/><text x="116" y="50" class="nlabel">1</text>
+          <circle cx="192" cy="50" r="18" class="node onpath"/><text x="192" y="50" class="nlabel">2</text>
+          <circle cx="268" cy="50" r="18" class="node onpath"/><text x="268" y="50" class="nlabel">3</text>
+          <circle cx="344" cy="50" r="18" class="node onpath"/><text x="344" y="50" class="nlabel">4</text>
+          <circle cx="420" cy="50" r="18" class="node onpath"/><text x="420" y="50" class="nlabel">5</text>
+          <circle cx="496" cy="50" r="18" class="node onpath"/><text x="496" y="50" class="nlabel">6</text>
+          <circle cx="572" cy="50" r="18" class="node onpath"/><text x="572" y="50" class="nlabel">7</text>
+          <text x="40" y="92" class="lbl-root" text-anchor="middle">root</text>
+          <text x="572" y="92" class="lbl-accent" text-anchor="middle">find(7)</text>
+          <text x="306" y="98" class="lbl" text-anchor="middle">7 hops for 8 elements → O(n) per find</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>Height grows with n, so find costs O(n) in the worst case. Every union calls find twice, so union degrades with it.</figcaption>
+  </figure>
+  <div class="callout warn">
+    <div class="tag">Precision note</div>
+    <p>The video describes the chain as coming from <code>union(0,1)</code>, <code>union(1,2)</code>, …, <code>union(6,7)</code>. With the v1.0 code above, which links root to root, that exact order produces a flat star under 0. The chain 7 → 6 → … → 0 appears when the same unions arrive in reverse order: <code>union(6,7)</code>, <code>union(5,6)</code>, …, <code>union(0,1)</code>. The lesson is unchanged: v1.0 has no rule to keep height low, so some input order will always build a chain.</p>
+  </div>
+</section>
+
+<section id="balance">
+  <header><div class="eyebrow">Part 5 · Fix #1</div><h2>Union by rank and union by size</h2></header>
+  <p class="lead">The fix: when merging, attach the <b>smaller</b> tree under the <b>larger</b> one. The root of the big tree stays the root, so most nodes do not get deeper. There are two ways to measure "smaller".</p>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>Union by rank (v2.0)</th><th>Union by size (v2.1)</th></tr></thead>
+    <tbody>
+      <tr><td><b>Tracks</b></td><td>Height of each tree, in a <code>rank</code> array</td><td>Number of elements, in a <code>size</code> array</td></tr>
+      <tr><td><b>Merge rule</b></td><td>Lower-rank root points to higher-rank root</td><td>Smaller-size root points to larger-size root</td></tr>
+      <tr><td><b>Tie</b></td><td>Pick either root; its rank grows by 1</td><td>Pick either; add the sizes</td></tr>
+      <tr><td><b>Goal</b></td><td colspan="2">Same for both: keep trees flat so find stays fast</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="fig">
+      <svg viewBox="0 0 640 250" role="img" aria-label="Tree rooted at 0 has height 2 and size 4; tree rooted at 4 has height 1 and size 5">
+        <defs><marker id="m3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+        <text x="130" y="22" class="lbl-strong" text-anchor="middle">Tree A</text>
+        <line x1="88" y1="104" x2="119" y2="61" class="edge" marker-end="url(#m3)"/>
+        <line x1="172" y1="104" x2="141" y2="61" class="edge" marker-end="url(#m3)"/>
+        <line x1="180" y1="168" x2="180" y2="136" class="edge" marker-end="url(#m3)"/>
+        <circle cx="130" cy="46" r="18" class="node root"/><text x="130" y="46" class="nlabel">0</text>
+        <circle cx="80" cy="118" r="18" class="node"/><text x="80" y="118" class="nlabel">1</text>
+        <circle cx="180" cy="118" r="18" class="node"/><text x="180" y="118" class="nlabel">2</text>
+        <circle cx="180" cy="186" r="18" class="node"/><text x="180" y="186" class="nlabel">3</text>
+        <text x="130" y="232" class="lbl" text-anchor="middle">height (rank) = 2 · size = 4</text>
+
+        <text x="470" y="22" class="lbl-strong" text-anchor="middle">Tree B</text>
+        <line x1="380" y1="102" x2="456" y2="58" class="edge" marker-end="url(#m3)"/>
+        <line x1="440" y1="100" x2="463" y2="63" class="edge" marker-end="url(#m3)"/>
+        <line x1="500" y1="100" x2="477" y2="63" class="edge" marker-end="url(#m3)"/>
+        <line x1="560" y1="102" x2="484" y2="58" class="edge" marker-end="url(#m3)"/>
+        <circle cx="470" cy="46" r="18" class="node root"/><text x="470" y="46" class="nlabel">4</text>
+        <circle cx="380" cy="118" r="18" class="node"/><text x="380" y="118" class="nlabel">5</text>
+        <circle cx="440" cy="118" r="18" class="node"/><text x="440" y="118" class="nlabel">6</text>
+        <circle cx="500" cy="118" r="18" class="node"/><text x="500" y="118" class="nlabel">7</text>
+        <circle cx="560" cy="118" r="18" class="node"/><text x="560" y="118" class="nlabel">8</text>
+        <text x="470" y="232" class="lbl" text-anchor="middle">height (rank) = 1 · size = 5</text>
+      </svg>
+    </div>
+    <figcaption>The video's example, drawn with one tree for each figure it quotes (A: height 2, 4 elements; B: height 1, 5 elements). Here the two rules disagree.</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>Strategy</th><th>Compares</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Union by rank</td><td class="num">rank 2 vs 1</td><td>Shorter tree B goes under A: <code>parent[4] = 0</code></td></tr>
+      <tr><td>Union by size</td><td class="num">size 4 vs 5</td><td>Smaller tree A goes under B: <code>parent[0] = 4</code></td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout beyond">
+    <div class="tag">Beyond the video</div>
+    <p>Either rule alone guarantees a tree height of at most about log₂ n, so find becomes O(log n) instead of O(n). In the example, union by size makes the merged tree one level taller than union by rank would, yet the logarithmic guarantee still holds for both.</p>
+  </div>
+</section>
+
+<section id="compress">
+  <header><div class="eyebrow">Part 6 · Fix #2</div><h2>Path compression</h2></header>
+  <p class="lead">Balanced unions keep trees short. Path compression goes further: every time <code>find</code> climbs to the root, it makes each node it passed point <b>directly</b> at the root.</p>
+  <figure>
+    <div class="fig">
+      <svg viewBox="0 0 620 260" role="img" aria-label="Before: chain 3 to 2 to 1 to 0. After find(3): 1, 2 and 3 all point to 0">
+        <defs>
+          <marker id="m4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-hot" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="m4n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-new" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="m4g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+        <text x="120" y="20" class="lbl-strong" text-anchor="middle">Before: find(3) walks 3 hops</text>
+        <line x1="120" y1="200" x2="120" y2="168" class="edge hot" marker-end="url(#m4)"/>
+        <line x1="120" y1="140" x2="120" y2="108" class="edge hot" marker-end="url(#m4)"/>
+        <line x1="120" y1="80" x2="120" y2="64" class="edge hot" marker-end="url(#m4)"/>
+        <circle cx="120" cy="46" r="18" class="node root"/><text x="120" y="46" class="nlabel">0</text>
+        <circle cx="120" cy="96" r="13" class="node onpath"/><text x="120" y="96" class="nlabel" style="font-size:13px">1</text>
+        <circle cx="120" cy="154" r="15" class="node onpath"/><text x="120" y="154" class="nlabel">2</text>
+        <circle cx="120" cy="214" r="15" class="node onpath"/><text x="120" y="214" class="nlabel">3</text>
+        <text x="148" y="218" class="lbl-accent">find(3)</text>
+
+        <text x="300" y="134" class="lbl" text-anchor="middle">find(3) with</text>
+        <text x="300" y="150" class="lbl" text-anchor="middle">compression</text>
+        <line x1="260" y1="164" x2="340" y2="164" class="edge" marker-end="url(#m4g)"/>
+
+        <text x="480" y="20" class="lbl-strong" text-anchor="middle">After: every node is 1 hop away</text>
+        <line x1="400" y1="160" x2="466" y2="60" class="edge" marker-end="url(#m4g)"/>
+        <line x1="480" y1="160" x2="480" y2="66" class="edge new" marker-end="url(#m4n)"/>
+        <line x1="560" y1="160" x2="494" y2="60" class="edge new" marker-end="url(#m4n)"/>
+        <circle cx="480" cy="46" r="18" class="node root"/><text x="480" y="46" class="nlabel">0</text>
+        <circle cx="400" cy="176" r="18" class="node"/><text x="400" y="176" class="nlabel">1</text>
+        <circle cx="480" cy="176" r="18" class="node"/><text x="480" y="176" class="nlabel">2</text>
+        <circle cx="560" cy="176" r="18" class="node"/><text x="560" y="176" class="nlabel">3</text>
+        <text x="480" y="226" class="lbl" text-anchor="middle">dashed amber = links rewritten by find</text>
+      </svg>
+    </div>
+    <figcaption>The first find pays the full climb. Every later find on 1, 2 or 3 is a single hop, which is why repeated finds become "almost instant".</figcaption>
+  </figure>
+  <p>Version 3.0 adds this on top of union by rank. Only <code>find</code> changes: it becomes recursive, and on the way back from the root it overwrites each node's parent with the root.</p>
+  <div class="callout warn">
+    <div class="tag">Common misconception</div>
+    <p>Path compression changes tree heights but does not update <code>rank</code>. After compression, rank is an <b>upper bound</b> on height, not the exact height. That is fine: the algorithm only needs rank to compare trees, and the complexity proof relies on this bound. <span class="mono" style="color:var(--muted)">(beyond the video)</span></p>
+  </div>
+</section>
+
+<section id="code">
+  <header><div class="eyebrow">Annotated code</div><h2>All four versions side by side</h2></header>
+  <p>Highlighted lines are what changed from the version before. The video shows v2.0, v2.1 and v3.0 on screen without reading them aloud, so these listings are standard implementations that match what the narration describes.</p>
+  <div class="tabs" role="tablist" aria-label="Implementation versions">
+    <button type="button" role="tab" id="tab-v1" aria-controls="p-v1" aria-selected="false">v1.0 basic</button>
+    <button type="button" role="tab" id="tab-v20" aria-controls="p-v20" aria-selected="false">v2.0 rank</button>
+    <button type="button" role="tab" id="tab-v21" aria-controls="p-v21" aria-selected="false">v2.1 size</button>
+    <button type="button" role="tab" id="tab-v3" aria-controls="p-v3" aria-selected="true">v3.0 rank + compression</button>
+    <button type="button" role="tab" id="tab-java" aria-controls="p-java" aria-selected="false">Java (v3.0)</button>
+  </div>
+
+  <div class="panel" role="tabpanel" id="p-v1" aria-labelledby="tab-v1" hidden>
+    <p class="meta">Worst case per operation: O(n). Shown in Part 4.</p>
+<pre><code>class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+
+    def find(self, x):
+        while self.parent[x] != x:
+            x = self.parent[x]
+        return x
+
+    def union(self, x, y):
+        root_x, root_y = self.find(x), self.find(y)
+        if root_x != root_y:
+            self.parent[root_y] = root_x</code></pre>
+  </div>
+
+  <div class="panel" role="tabpanel" id="p-v20" aria-labelledby="tab-v20" hidden>
+    <p class="meta">Adds a <code>rank</code> array (tree height). Lower rank goes under higher rank.</p>
+<pre><code>class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+<span class="add">        self.rank = [0] * n               <span class="c"># every single-node tree has height 0</span></span>
+    def find(self, x):
+        while self.parent[x] != x:
+            x = self.parent[x]
+        return x
+
+    def union(self, x, y):
+        root_x, root_y = self.find(x), self.find(y)
+<span class="add">        if root_x == root_y:</span>
+<span class="add">            return</span>
+<span class="add">        if self.rank[root_x] &lt; self.rank[root_y]:</span>
+<span class="add">            self.parent[root_x] = root_y  <span class="c"># shorter tree under taller</span></span>
+<span class="add">        elif self.rank[root_x] &gt; self.rank[root_y]:</span>
+<span class="add">            self.parent[root_y] = root_x</span>
+<span class="add">        else:                             <span class="c"># equal heights: either way,</span></span>
+<span class="add">            self.parent[root_y] = root_x</span>
+<span class="add">            self.rank[root_x] += 1        <span class="c"># and the new root grows by 1</span></span></code></pre>
+  </div>
+
+  <div class="panel" role="tabpanel" id="p-v21" aria-labelledby="tab-v21" hidden>
+    <p class="meta">Replaces <code>rank</code> with <code>size</code> (element count). Smaller tree goes under larger.</p>
+<pre><code>class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+<span class="add">        self.size = [1] * n               <span class="c"># every tree starts with 1 element</span></span>
+    def find(self, x):
+        while self.parent[x] != x:
+            x = self.parent[x]
+        return x
+
+    def union(self, x, y):
+        root_x, root_y = self.find(x), self.find(y)
+        if root_x == root_y:
+            return
+<span class="add">        if self.size[root_x] &lt; self.size[root_y]:</span>
+<span class="add">            root_x, root_y = root_y, root_x   <span class="c"># make root_x the bigger tree</span></span>
+<span class="add">        self.parent[root_y] = root_x</span>
+<span class="add">        self.size[root_x] += self.size[root_y]</span></code></pre>
+  </div>
+
+  <div class="panel" role="tabpanel" id="p-v3" aria-labelledby="tab-v3">
+    <p class="meta">v2.0 plus path compression. Only <code>find</code> changes. Each operation: O(α(n)).</p>
+<pre><code>class UnionFind:
+    def __init__(self, n):
+        self.parent = list(range(n))
+        self.rank = [0] * n
+
+<span class="add">    def find(self, x):</span>
+<span class="add">        if self.parent[x] != x:                       <span class="c"># not the root yet:</span></span>
+<span class="add">            self.parent[x] = self.find(self.parent[x]) <span class="c"># find root, then point x at it</span></span>
+<span class="add">        return self.parent[x]</span>
+
+    def union(self, x, y):
+        root_x, root_y = self.find(x), self.find(y)
+        if root_x == root_y:
+            return
+        if self.rank[root_x] &lt; self.rank[root_y]:
+            self.parent[root_x] = root_y
+        elif self.rank[root_x] &gt; self.rank[root_y]:
+            self.parent[root_y] = root_x
+        else:
+            self.parent[root_y] = root_x
+            self.rank[root_x] += 1</code></pre>
+  </div>
+
+  <div class="panel" role="tabpanel" id="p-java" aria-labelledby="tab-java" hidden>
+    <p class="meta">Beyond the video: the same v3.0 in Java. <code>find</code> is iterative (two passes) so a deep tree cannot overflow the call stack on the first call, and <code>union</code> returns <code>false</code> when x and y were already connected, which is the hook for cycle detection and Kruskal's algorithm.</p>
+<pre><code>public final class UnionFind {
+    private final int[] parent;
+    private final int[] rank;
+
+    public UnionFind(int n) {
+        parent = new int[n];
+        rank = new int[n];
+        for (int i = 0; i &lt; n; i++) parent[i] = i;      <span class="c">// make_set</span>
+    }
+
+    public int find(int x) {
+        int root = x;
+        while (parent[root] != root) root = parent[root]; <span class="c">// pass 1: locate the root</span>
+        while (parent[x] != root) {                        <span class="c">// pass 2: compress the path</span>
+            int next = parent[x];
+            parent[x] = root;
+            x = next;
+        }
+        return root;
+    }
+
+    <span class="c">/** @return false if x and y were already in the same set (an edge x–y would close a cycle) */</span>
+    public boolean union(int x, int y) {
+        int rx = find(x), ry = find(y);
+        if (rx == ry) return false;
+        if (rank[rx] &lt; rank[ry]) { int t = rx; rx = ry; ry = t; } <span class="c">// rx = taller tree</span>
+        parent[ry] = rx;
+        if (rank[rx] == rank[ry]) rank[rx]++;
+        return true;
+    }
+
+    public boolean connected(int x, int y) { return find(x) == find(y); }
+}</code></pre>
+  </div>
+</section>
+
+<section id="complexity">
+  <header><div class="eyebrow">Part 7 · Result</div><h2>Performance: the inverse Ackermann function</h2></header>
+  <p class="lead">Combining union by rank with path compression makes each operation cost O(α(n)), where α is the <b>inverse Ackermann function</b>. It is not strictly constant, but it grows so slowly that, as the video puts it, α(n) is at most 4 or 5 for any practical input size. Treat it as constant.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Version</th><th>Extra state</th><th>Union rule</th><th>find</th><th>Worst case per op</th></tr></thead>
+    <tbody>
+      <tr><td>v1.0</td><td>none</td><td>root_y → root_x</td><td>loop</td><td class="num">O(n)</td></tr>
+      <tr><td>v2.0</td><td><code>rank[]</code></td><td>lower rank → higher</td><td>loop</td><td class="num">O(log n) †</td></tr>
+      <tr><td>v2.1</td><td><code>size[]</code></td><td>smaller → larger</td><td>loop</td><td class="num">O(log n) †</td></tr>
+      <tr><td><b>v3.0</b></td><td><code>rank[]</code></td><td>lower rank → higher</td><td>recursive + compress</td><td class="num"><b>O(α(n))</b></td></tr>
+    </tbody>
+  </table></div>
+  <p style="font-size:.88rem;color:var(--muted)">† Standard result, not stated in the video. Memory is O(n) for every version: one or two integer arrays.</p>
+</section>
+
+<section id="connections">
+  <header><div class="eyebrow">Concept connections</div><h2>How the ideas fit together</h2></header>
+  <div class="flow">
+    <div class="box"><b>Disjoint sets</b><span>Groups that share no element</span></div>
+    <div class="box"><b>Forest in parent[]</b><span>Each group is a tree; its root names it</span></div>
+    <div class="box"><b>make_set · find · union</b><span>Create, identify, merge</span></div>
+    <div class="box"><b>Weakness</b><span>Unchecked unions grow tall trees; find becomes O(n)</span></div>
+    <div class="box"><b>Fix during union</b><span>Rank or size: small tree under big</span></div>
+    <div class="box"><b>Fix during find</b><span>Path compression: point nodes at root</span></div>
+    <div class="box key"><b>O(α(n)) per op</b><span>Both fixes together; ≤ 4–5 in practice</span></div>
+    <div class="box"><b>Dynamic connectivity</b><span>"Are a and b connected?" as edges arrive</span></div>
+    <div class="box"><b>Applications</b><span>Cycle detection, network components, Kruskal's MST</span></div>
+  </div>
+  <ul class="takeaways">
+    <li><b>Cause and effect:</b> find's cost equals the depth of the node, so every optimization is really a way to control depth.</li>
+    <li><b>The two fixes are complementary.</b> Union by rank/size prevents tall trees from forming; path compression repairs whatever depth remains, and does it as a side effect of work you were doing anyway.</li>
+    <li><b>Union depends on find.</b> Union calls find on both arguments, so a faster find speeds up union too.</li>
+  </ul>
+</section>
+
+<section id="revision">
+  <header><div class="eyebrow">Quick revision sheet</div><h2>The whole video on one screen</h2></header>
+  <div class="sheet">
+    <div class="card"><b>What it is</b><p>A structure for disjoint sets: test whether two elements share a set, and merge two sets.</p></div>
+    <div class="card"><b>How it's stored</b><p><code>parent[i]</code> is i's parent. A root has <code>parent[r] == r</code>. Map strings to indices with a hash map.</p></div>
+    <div class="card"><b>find(x)</b><p>Follow parents to the root. Same root means same set.</p></div>
+    <div class="card"><b>union(x, y)</b><p>Find both roots; if they differ, make one root the parent of the other.</p></div>
+    <div class="card"><b>The flaw in v1.0</b><p>Trees can become chains, so find is O(n).</p></div>
+    <div class="card"><b>Union by rank / size</b><p>Attach the shorter (rank) or smaller (size) tree under the other.</p></div>
+    <div class="card"><b>Path compression</b><p>During find, point every visited node directly at the root.</p></div>
+    <div class="card"><b>Final cost</b><p>Rank + compression: O(α(n)) per operation, effectively constant.</p></div>
+  </div>
+  <h3>Key terms</h3>
+  <dl class="terms">
+    <dt>Disjoint sets</dt><dd>Sets with no element in common; each element is in exactly one set.</dd>
+    <dt>DSU</dt><dd>Disjoint Set Union, another name for Union-Find.</dd>
+    <dt>Root / representative</dt><dd>The element that is its own parent; it identifies its whole set.</dd>
+    <dt>Parent array</dt><dd>Array where index = element and value = that element's parent.</dd>
+    <dt>Forest</dt><dd>A collection of rooted trees, one per set.</dd>
+    <dt>Rank</dt><dd>Per-root number tracking tree height, used by union by rank.</dd>
+    <dt>Size</dt><dd>Per-root count of elements, used by union by size.</dd>
+    <dt>Path compression</dt><dd>Rewriting parent links during find so visited nodes point straight at the root.</dd>
+    <dt>α(n)</dt><dd>Inverse Ackermann function; at most 4 or 5 for practical n.</dd>
+    <dt>Dynamic connectivity</dt><dd>Answering connectivity queries while connections keep being added.</dd>
+  </dl>
+  <p style="font-size:.88rem;color:var(--muted)">Timestamps: the transcript was supplied without timestamps, so none are listed.</p>
+</section>
+
+<section id="check">
+  <header><div class="eyebrow">Knowledge check</div><h2>Test yourself</h2></header>
+  <p>Answer each on paper first. Answers are in the next section.</p>
+  <ol class="quiz">
+    <li>Start from <code>parent = [0,1,2,3,4,5,6,7]</code>. Using v1.0, run <code>union(0,1)</code>, <code>union(2,3)</code>, <code>union(0,2)</code>. Write the parent array, and list the nodes <code>find(3)</code> visits.</li>
+    <li>Why does v1.0's find degrade to O(n), and why does that also slow down union?</li>
+    <li>Tree A (root 0) has height 2 and 4 elements. Tree B (root 4) has height 1 and 5 elements. Which root becomes the parent under union by rank, and which under union by size?</li>
+    <li>A chain 3 → 2 → 1 → 0 exists. Describe the parent array after one call to <code>find(3)</code> in v3.0.</li>
+    <li>The final version is described as "nearly constant time". What is the exact bound, and why is it fine to treat it as constant?</li>
+  </ol>
+</section>
+
+<section id="answers">
+  <header><div class="eyebrow">Answers</div><h2>Check your work</h2></header>
+  <div>
+    <details><summary>1. Parent array after three unions</summary>
+      <p><code>parent = [0, 0, 0, 2, 4, 5, 6, 7]</code>. <code>find(3)</code> visits 3, then 2, then 0, and returns 0 because <code>parent[0] == 0</code>. Note that <code>parent[3]</code> stays 2: union only re-parents roots.</p></details>
+    <details><summary>2. Why v1.0 degrades</summary>
+      <p>v1.0 links roots with no regard to height, so some sequences of unions build a chain of n nodes. find walks one link per level, so it costs O(n). Union calls find on both arguments before linking, so it inherits the same cost.</p></details>
+    <details><summary>3. Rank vs size</summary>
+      <p>By rank, B (rank 1) goes under A (rank 2): <code>parent[4] = 0</code>, root 0. By size, A (4 elements) goes under B (5 elements): <code>parent[0] = 4</code>, root 4. The heuristics measure different things, so they can choose differently.</p></details>
+    <details><summary>4. Path compression on a chain</summary>
+      <p>Every node on the path is rewritten to point at the root: <code>parent[1] = 0</code>, <code>parent[2] = 0</code>, <code>parent[3] = 0</code>. The chain becomes a star, and later finds on 1, 2 or 3 take one hop.</p></details>
+    <details><summary>5. The α(n) bound</summary>
+      <p>With union by rank and path compression, each operation is O(α(n)), where α is the inverse Ackermann function. It grows so slowly that it is at most 4 or 5 for any input size you could store, so in practice it behaves like a small constant.</p></details>
+  </div>
+  <footer>Study guide built from the "Union Find" lecture transcript. Items marked "beyond the video" add standard facts that the transcript does not state.</footer>
+</section>
+
+</div>
+
+<script>
+(function(){
+  /* ---------- walkthrough stepper ---------- */
+  const steps = [
+    {op:'make_set × 8', note:'Every element is its own parent: eight single-node trees, each its own root.'},
+    {op:'union(0, 1)', set:[1,0], note:'Roots 0 and 1 differ. 0 becomes the new root, so parent[1] = 0.'},
+    {op:'union(2, 3)', set:[3,2], note:'Same idea: 2 becomes the root, so parent[3] = 2.'},
+    {op:'union(0, 2)', set:[2,0], note:'The two small trees merge with 0 as root: parent[2] = 0. Nodes 1, 2, 3 all reach 0, directly or indirectly.'},
+    {op:'find(3)', path:[3,2,0], note:"3's parent is 2, 2's parent is 0, and 0 is its own parent. find(3) returns 0."},
+    {op:'union(4, 5)', set:[5,4], note:'parent[5] = 4.'},
+    {op:'union(6, 7)', set:[7,6], note:'parent[7] = 6.'},
+    {op:'union(4, 6)', set:[6,4], note:'parent[6] = 4. Elements 4, 5, 6, 7 now form one group rooted at 4.'},
+    {op:'union(0, 4)', set:[4,0], note:'The tree rooted at 4 joins the tree rooted at 0: parent[4] = 0. All eight elements are one group.'},
+    {op:'find(7)', path:[7,6,4,0], note:'7 → 6 → 4 → 0. The representative of 7\'s group is 0.'}
+  ];
+  const N = 8;
+  let cur = 0;
+  const $ = id => document.getElementById(id);
+
+  function stateAt(k){
+    const p = Array.from({length:N}, (_,i)=>i);
+    for(let i=0;i<=k;i++){ const s=steps[i]; if(s.set) p[s.set[0]] = s.set[1]; }
+    return p;
+  }
+  function layout(parent){
+    const kids = Array.from({length:N}, ()=>[]); const roots=[];
+    for(let i=0;i<N;i++){ if(parent[i]===i) roots.push(i); else kids[parent[i]].push(i); }
+    let leaf=0, maxD=0; const pos={};
+    function place(v,d){
+      maxD=Math.max(maxD,d);
+      if(!kids[v].length){ pos[v]={x:leaf++,d}; return pos[v].x; }
+      const xs = kids[v].map(c=>place(c,d+1));
+      pos[v]={x:(xs[0]+xs[xs.length-1])/2,d}; return pos[v].x;
+    }
+    roots.forEach(r=>place(r,0));
+    return {pos, leaves:leaf, maxD};
+  }
+  function renderTree(parent, path, changed){
+    const {pos, leaves} = layout(parent);
+    const W=560, H=250, R=18;
+    const slot = Math.min(66, (W-60)/Math.max(1,leaves-1));
+    const off = (W - slot*(leaves-1))/2;
+    const P = v => ({x: off + pos[v].x*slot, y: 36 + pos[v].d*62});
+    const onPath = new Set(path||[]);
+    const hotEdge = new Set(); (path||[]).forEach((v,i)=>{ if(i<path.length-1) hotEdge.add(v); });
+    let edges='', nodes='';
+    for(let i=0;i<N;i++){
+      const a=P(i);
+      if(parent[i]!==i){
+        const b=P(parent[i]); const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy);
+        const x1=a.x+dx/L*R, y1=a.y+dy/L*R, x2=b.x-dx/L*(R+3), y2=b.y-dy/L*(R+3);
+        const cls = hotEdge.has(i)?'edge hot':(changed===i?'edge new':'edge');
+        const mk = hotEdge.has(i)?'url(#wm-h)':(changed===i?'url(#wm-n)':'url(#wm)');
+        edges += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="${cls}" marker-end="${mk}"/>`;
+      }
+      const cls = onPath.has(i)?'node onpath':(parent[i]===i?'node root':'node');
+      nodes += `<circle cx="${a.x.toFixed(1)}" cy="${a.y}" r="${R}" class="${cls}"/><text x="${a.x.toFixed(1)}" y="${a.y}" class="nlabel">${i}</text>`;
+      if(parent[i]===i && onPath.has(i)) nodes += `<text x="${a.x.toFixed(1)}" y="${a.y-26}" class="lbl-accent" text-anchor="middle">returns ${i}</text>`;
+    }
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Forest after ${steps[cur].op}">
+      <defs>
+        <marker id="wm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="wm-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-hot" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="wm-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="ah-new" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>${edges}${nodes}</svg>`;
+  }
+  function render(){
+    const s = steps[cur]; const parent = stateAt(cur);
+    const changed = s.set ? s.set[0] : -1;
+    $('st-op').textContent = s.op;
+    $('st-count').textContent = `Step ${cur+1} of ${steps.length}`;
+    $('st-note').textContent = s.note;
+    $('st-tree').innerHTML = renderTree(parent, s.path, changed);
+    $('st-arr').innerHTML = parent.map((v,i)=>`<div class="cell${v===i?' is-root':''}${i===changed?' changed':''}"><span class="i">${i}</span><span class="v">${v}</span></div>`).join('');
+    $('st-prev').disabled = cur===0;
+    $('st-next').disabled = cur===steps.length-1;
+    document.querySelectorAll('#st-log button').forEach((b,i)=>{ if(i===cur) b.setAttribute('aria-current','step'); else b.removeAttribute('aria-current'); });
+  }
+  $('st-log').innerHTML = steps.map((s,i)=>`<button type="button" data-i="${i}">${s.op}</button>`).join('');
+  $('st-log').addEventListener('click', e=>{ const b=e.target.closest('button'); if(b){ cur=+b.dataset.i; render(); }});
+  $('st-prev').addEventListener('click', ()=>{ if(cur>0){cur--; render();} });
+  $('st-next').addEventListener('click', ()=>{ if(cur<steps.length-1){cur++; render();} });
+  $('st-reset').addEventListener('click', ()=>{ cur=0; render(); });
+  render();
+
+  /* ---------- code tabs ---------- */
+  const tabs = document.querySelectorAll('[role="tab"]');
+  tabs.forEach(t=>t.addEventListener('click', ()=>{
+    tabs.forEach(o=>{ o.setAttribute('aria-selected', o===t?'true':'false'); document.getElementById(o.getAttribute('aria-controls')).hidden = o!==t; });
+  }));
+})();
+</script>
+
+</body></html>
